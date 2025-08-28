@@ -21,20 +21,26 @@ public class Business : MonoBehaviour
     public TMP_Text costText;
     public TMP_Text profitText;
     public Button buyButton;
-    public Button produceButton;  // 👈 nuevo botón para producir
+    public Button produceButton;  // 👈 botón manual (nivel < 10)
     public Image progressBar;
 
     private void Start()
     {
         nameText.text = businessName;
         buyButton.onClick.AddListener(Buy);
-        produceButton.onClick.AddListener(StartProduction); // 👈 asignamos acción
+        produceButton.onClick.AddListener(StartProduction); // 👈 acción manual
         UpdateUI();
     }
 
     void Update()
     {
         UpdateUI();
+
+        // 👇 Si tiene nivel >= 10 y no está produciendo, arranca solo
+        if (level >= 10 && !isRunning)
+        {
+            StartCoroutine(ProduceOnce());
+        }
     }
 
     public void Buy()
@@ -50,7 +56,8 @@ public class Business : MonoBehaviour
 
     private void StartProduction()
     {
-        if (level > 0 && !isRunning)
+        // 👇 Solo manual si nivel < 10
+        if (level > 0 && !isRunning && level < 10)
         {
             StartCoroutine(ProduceOnce());
         }
@@ -77,7 +84,12 @@ public class Business : MonoBehaviour
             progressBar.fillAmount = 0;
 
         isRunning = false;
-        produceButton.interactable = true; // 👈 lo habilitamos otra vez
+
+        // 👇 reactivar el botón solo si es manual
+        if (level < 10)
+            produceButton.interactable = true;
+        else
+            produceButton.interactable = false; // a nivel 10+ no hace falta
     }
 
     public double GetCost()
@@ -98,7 +110,7 @@ public class Business : MonoBehaviour
         profitText.text = "$" + GetProfit().ToString("F0") + " / " + productionTime + "s";
         buyButton.interactable = GameManager.instance.money >= GetCost();
 
-        // 👇 solo se puede producir si hay al menos 1 nivel y no está produciendo
-        produceButton.interactable = (level > 0 && !isRunning);
+        // 👇 Manual disponible solo antes de nivel 10
+        produceButton.interactable = (level > 0 && !isRunning && level < 10);
     }
 }
