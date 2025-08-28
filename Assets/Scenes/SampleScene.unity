@@ -880,6 +880,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: -56.883
       objectReference: {fileID: 0}
+    - target: {fileID: 834478246133967380, guid: 2bae8555013b4c0419a988f7794e9797, type: 3}
+      propertyPath: m_Color.a
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2589237677044014467, guid: 2bae8555013b4c0419a988f7794e9797, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5

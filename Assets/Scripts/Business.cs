@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using System;
 
 public class Business : MonoBehaviour
 {
@@ -92,16 +93,23 @@ public class Business : MonoBehaviour
             produceButton.interactable = false; // a nivel 10+ no hace falta
     }
 
-    public double GetCost()
-    {
-        int nextLevel = level + 1;
-        return (baseCost + baseProfit) * nextLevel;
-    }
+ // Fórmula mixta: combina diferentes tipos de crecimiento
+public double GetCost()
+{
+    int nextLevel = level + 1;
+    // Combinación de lineal + exponencial
+    return baseCost * (nextLevel + Math.Pow(1.2, nextLevel));
+}
 
-    public double GetProfit()
-    {
-        return baseProfit * level;
-    }
+public double GetProfit()
+{
+    // Profit con bonificaciones por niveles altos
+    double baseProfitValue = baseProfit * level;
+    if (level >= 10) baseProfitValue *= 1.5; // +50% bonus nivel 10+
+    if (level >= 25) baseProfitValue *= 2.0; // +100% bonus nivel 25+
+    if (level >= 50) baseProfitValue *= 3.0; // +200% bonus nivel 50+
+    return baseProfitValue;
+}
 
     private void UpdateUI()
     {
