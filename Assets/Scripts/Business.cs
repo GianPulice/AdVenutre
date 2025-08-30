@@ -43,6 +43,8 @@ public class Business : MonoBehaviour
     public TMP_Text qteText; // Texto del QTE
     public Image qteProgressBar; // Barra de progreso del QTE
     public Button qteTestButton; // Botón de prueba para el QTE
+    public Sprite[] qteGifFrames; // 👈 NUEVO: Frames del GIF
+    public float qteGifFrameRate = 12f; // 👈 NUEVO: Velocidad de reproducción
     
     [Header("Penalización UI")]
     public Image penaltyProgressBar; // Barra de progreso de la penalización
@@ -75,7 +77,7 @@ public class Business : MonoBehaviour
     {
         UpdateUI();
 
-        // 👇 Si tiene nivel >= 10 y no está produciendo, arranca solo
+        // 👇 Si tiene nivel >= 10 y no está produciendo, no hay QTE activo, no hay penalización Y no está corriendo
         if (level >= 10 && !isRunning && !isQTEActive && !isPenalized)
         {
             StartCoroutine(ProduceOnce());
@@ -177,10 +179,10 @@ public class Business : MonoBehaviour
         globalQTEActive = false; // Liberar el QTE global
         qteTimer = 0f;
         
-        // Ocultar panel de QTE
+        // Ocultar panel de QTE con animación
         if (qtePanel != null)
         {
-            qtePanel.SetActive(false);
+            StartCoroutine(AnimateQTEExit());
         }
         
         // Resetear barra de progreso
@@ -232,15 +234,21 @@ public class Business : MonoBehaviour
                 globalQTEActive = true;
                 qteTimer = 0f;
                 
-                // Mostrar UI del QTE
+                // Mostrar UI del QTE con animación
                 if (qtePanel != null)
                 {
                     qtePanel.SetActive(true);
+                    StartCoroutine(AnimateQTEEnter());
+                    // Iniciar reproducción del GIF
+                    if (qteGifFrames.Length > 0)
+                    {
+                        StartCoroutine(PlayQTEAnimation());
+                    }
                 }
                 
                 if (qteText != null)
                 {
-                    qteText.text = $"¡PRESIONA SPACE RÁPIDO!";
+                    qteText.text = $"RÁPIDO!";
                 }
                 
                 if (qteProgressBar != null)
@@ -328,13 +336,17 @@ public class Business : MonoBehaviour
  // Fórmula mixta: combina diferentes tipos de crecimiento
 public double GetCost()
 {
-    // NUEVA FÓRMULA: (costo inicial + profit) × level
-    return ((baseCost + baseProfit) * level) * 2;
+    // NUEVA FÓRMULA: (costo inicial + profit) × level + baseCost
+    // Agregamos baseCost para evitar que el costo sea 0 cuando level es 0
+    return ((baseCost + baseProfit) * level) + baseCost;
 }
 
 public double GetProfit()
 {
     // NUEVA FÓRMULA: (profit base) × level + bonificaciones por hitos
+    // Si level es 0, retornar 0 para evitar cálculos incorrectos
+    if (level <= 0) return 0;
+    
     double baseProfitValue = baseProfit * level;
     
     // Bonificaciones por hitos específicos
@@ -404,6 +416,83 @@ public double GetProfit()
             // Mostrar tiempo restante de penalización
             float remainingTime = penaltyDuration - penaltyTimer;
             Debug.Log($"Penalización activa en {businessName} - Tiempo restante: {remainingTime:F1}s");
+        }
+    }
+
+    // NUEVA FUNCIÓN: Animación de entrada del QTE
+    private IEnumerator AnimateQTEEnter()
+    {
+        // Configurar escala inicial
+        qtePanel.transform.localScale = Vector3.zero;
+        
+        // Animación de entrada suave
+        float duration = 0.3f;
+        float elapsed = 0f;
+        
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = elapsed / duration;
+            float scale = Mathf.SmoothStep(0f, 1f, progress);
+            qtePanel.transform.localScale = new Vector3(scale, scale, scale);
+            yield return null;
+        }
+        
+        // Asegurar escala final
+        qtePanel.transform.localScale = Vector3.one;
+    }
+
+    // NUEVA FUNCIÓN: Animación de salida del QTE
+    private IEnumerator AnimateQTEExit()
+    {
+        // Animación de salida suave
+        float duration = 0.2f;
+        float elapsed = 0f;
+        
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = elapsed / duration;
+            float scale = Mathf.SmoothStep(1f, 0f, progress);
+            qtePanel.transform.localScale = new Vector3(scale, scale, scale);
+            yield return null;
+        }
+        
+        // Ocultar el panel
+        qtePanel.SetActive(false);
+        
+        // Resetear escala
+        qtePanel.transform.localScale = Vector3.one;
+    }
+
+    // NUEVA FUNCIÓN: Reproducir animación del GIF en el panel
+    private IEnumerator PlayQTEAnimation()
+    {
+        if (qtePanel == null || qteGifFrames.Length == 0) yield break;
+        
+        int currentFrame = 0;
+        float frameDelay = 1f / qteGifFrameRate;
+        
+        // Obtener la imagen del panel (asumiendo que es el primer Image component)
+        Image panelImage = qtePanel.GetComponent<Image>();
+        if (panelImage == null)
+        {
+            // Si no hay Image component en el panel, buscar en los hijos
+            panelImage = qtePanel.GetComponentInChildren<Image>();
+        }
+        
+        if (panelImage == null) yield break;
+        
+        while (qtePanel.activeInHierarchy)
+        {
+            // Cambiar frame del panel
+            panelImage.sprite = qteGifFrames[currentFrame];
+            
+            // Siguiente frame
+            currentFrame = (currentFrame + 1) % qteGifFrames.Length;
+            
+            // Esperar
+            yield return new WaitForSeconds(frameDelay);
         }
     }
 }
